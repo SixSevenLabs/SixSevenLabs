@@ -18,7 +18,11 @@ resource "aws_lambda_function" "augmentor_usage_metrics_consumer" {
 
     environment {
         variables = {
-            TABLE_NAME = aws_dynamodb_table.metrics_table.name
+            POSTGRES_USER     = var.postgres_user
+            POSTGRES_PASSWORD = var.postgres_password
+            POSTGRES_HOST     = var.postgres_host
+            POSTGRES_PORT     = var.postgres_port
+            POSTGRES_DB       = var.postgres_db
         }
     }
 }
