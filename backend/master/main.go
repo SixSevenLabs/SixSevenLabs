@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"master/internal/bin"
+	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/bin"
 )
 
 // master lambda function: implements bin packing algorithm for splitting up data into chunks
