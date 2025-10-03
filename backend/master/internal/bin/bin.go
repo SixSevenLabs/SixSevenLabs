@@ -7,48 +7,53 @@ import (
 )
 
 type BinPack struct {
-	DesiredSize       int64
-	MaxSize           int64
-	ConcurrentWorkers int
-	ListSize          int
-	Items             []types.S3Object
+	DesiredBinSize       int64
+	AbsoluteMaxFileSize  int64
+	ConcurrentWorkers    int
+	ListSize             int
+	Items                []types.S3Object
 }
 
 // constructor
 func NewBinPack(desiredSize int64, maxSize int64, items []types.S3Object) *BinPack {
 	return &BinPack{
-		DesiredSize: desiredSize,
-		MaxSize:     maxSize,
+		DesiredBinSize: desiredSize,
+		AbsoluteMaxFileSize: maxSize,
 		Items:       items,
 	}
 }
 
 // run function
-func (b *BinPack) Run() ([][]types.S3Object, []int64) {
+func (b *BinPack) Run() ([][]types.S3Object, []int64, error) {
 	fmt.Println("bin")
 	fmt.Println(b.Items)
-	filteredItems := b.filterLargeItems() // this copies but apparently good practice
+	
+	filteredItems, err := b.filterLargeItems()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	bins, binsTotal := b.binPack(filteredItems)
-	return bins, binsTotal
+	return bins, binsTotal, nil
 }
 
 // main bin pack algorithm
-func (b *BinPack) binPack(items []types.S3Object) (bins [][]types.S3Object, binTotals []int64) {
-	maxSize := b.DesiredSize
-	bins = [][]types.S3Object{}
-	binTotals = []int64{}
+func (b *BinPack) binPack(items []types.S3Object) ([][]types.S3Object,	 []int64) {
+	var bins [][]types.S3Object
+	var binTotals []int64
 
 	for _, item := range items {
 		inserted := false
 		for i, binSize := range binTotals {
-			if binSize+item.Size <= maxSize {
-				bins[i] = append(bins[i], item) // why is it like this smhhh
+			if binSize+item.Size <= b.DesiredBinSize {
+				bins[i] = append(bins[i], item)
 				binTotals[i] += item.Size
 				inserted = true
 				break
 			}
 		}
-		if !inserted { // create new bin if not desired size
+		if !inserted {
+			// create new bin if... (1) no bins exist (2) item doesn't fit into existing bin (3) DesiredBinSize <= item <= AbsoluteMaxFileSize 
 			bins = append(bins, []types.S3Object{item})
 			binTotals = append(binTotals, item.Size)
 		}
@@ -58,17 +63,19 @@ func (b *BinPack) binPack(items []types.S3Object) (bins [][]types.S3Object, binT
 	return bins, binTotals
 }
 
-func (b *BinPack) filterLargeItems() []types.S3Object {
-	maxSize := int64(float64(b.MaxSize) * 1.2)
-
-	filteredItems := []types.S3Object{}
+func (b *BinPack) filterLargeItems() ([]types.S3Object, error) {
+	var filteredItems []types.S3Object
 
 	for _, item := range b.Items {
-		if item.Size <= maxSize {
+		if item.Size <= b.AbsoluteMaxFileSize {
 			filteredItems = append(filteredItems, item)
 		} else {
-			fmt.Printf("Warning: item of size %d bytes exceeds max allowed size of %d bytes and will be skipped.\n", item.Size, maxSize)
+			fmt.Printf("Warning: item of size %d bytes exceeds max allowed size of %d bytes and will be skipped.\n", item.Size, b.AbsoluteMaxFileSize)
 		}
+	}
+
+	if len(filteredItems) == 0 {
+		return nil, fmt.Errorf("no items to process after filtering")
 	}
 
 	// just calculating total size to print
@@ -76,6 +83,8 @@ func (b *BinPack) filterLargeItems() []types.S3Object {
 	for _, item := range filteredItems {
 		totalSize += item.Size
 	}
+
 	fmt.Println(fmt.Sprintf("After filtering, %d items with total size %d bytes", len(filteredItems), totalSize))
-	return filteredItems
+
+	return filteredItems, nil
 }

@@ -17,17 +17,23 @@ import (
 // - calling augmentor lambda
 // - job status stuff
 
-const DESIRE_SIZE int64 = 128 * 1024 * 1024 // 128mb
-const MAX_SIZE int64 = 256 * 1024 * 1024    // 256mb
+const DESIRED_BIN_SIZE int64 = 128 * 1024 * 1024 			// 128mb
+const ABSOLUTE_MAX_FILE_SIZE int64 = 256 * 1024 * 1024    	// 256mb
 
-const MAX_CONCURRENT_WORKERS int = 10 // concurrency threshold
-// const LIST_SIZE int = 5000
+const MAX_CONCURRENT_WORKERS int = 40 // step functions map state max concurrency
 
 func main() {
 	fmt.Println("master")
-	items := []types.S3Object{} // call fetch here
-	binPack := bin.NewBinPack(DESIRE_SIZE, MAX_SIZE, items)
-	bins, binsTotal := binPack.Run()
+
+	var items []types.S3Object // call fetch here
+	
+	binPack := bin.NewBinPack(DESIRED_BIN_SIZE, ABSOLUTE_MAX_FILE_SIZE, items)
+
+	bins, binsTotal, err := binPack.Run()
+	if err != nil {
+		fmt.Println("Error in bin packing:", err)
+		return
+	}
 	
 	for i, b := range bins {
 		fmt.Printf("Bin %d: %d items, total size %d bytes\n", i, len(b), binsTotal[i])
@@ -36,8 +42,6 @@ func main() {
 	if len(bins) > MAX_CONCURRENT_WORKERS {
 		fmt.Printf("Note: %d > MaxConcurrency %d. Map State will queue extra invocations automatically.\n", len(bins), MAX_CONCURRENT_WORKERS)
 	}
-
-
 
 	// create events now
 
