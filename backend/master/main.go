@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/bin"
-	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/types"
+	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/fetch"
 )
 
 // master lambda function: implements bin packing algorithm for splitting up data into chunks
@@ -25,10 +28,24 @@ const MAX_CONCURRENT_WORKERS int = 10 // concurrency threshold
 
 func main() {
 	fmt.Println("master")
-	items := []types.S3Object{} // call fetch here
+
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	s3Client := s3.NewFromConfig(cfg)
+
+	fetchOperation := fetch.NewFetch("sixsevenlabs-data-dev")
+	items, err := fetchOperation.Fetch(context.Background(), s3Client)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	binPack := bin.NewBinPack(DESIRE_SIZE, MAX_SIZE, items)
 	bins, binsTotal := binPack.Run()
-	
+
 	for i, b := range bins {
 		fmt.Printf("Bin %d: %d items, total size %d bytes\n", i, len(b), binsTotal[i])
 	}
@@ -37,8 +54,6 @@ func main() {
 		fmt.Printf("Note: %d > MaxConcurrency %d. Map State will queue extra invocations automatically.\n", len(bins), MAX_CONCURRENT_WORKERS)
 	}
 
-
-
 	// create events now
 
-} 
+}
