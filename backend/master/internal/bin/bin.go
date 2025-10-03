@@ -2,59 +2,80 @@ package bin
 
 import (
 	"fmt"
-	"math/rand"
+
+	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/types"
 )
 
-const DESIRE_SIZE int64 = 128 * 1024 * 1024 // 128mb
-const MAX_SIZE int64 = 256 * 1024 * 1024    // 256mb
-
-const MAX_CONCURRENT_WORKERS int = 10 // concurrency threshold
-const LIST_SIZE int= 5000
-
-// main bin packing function
-func RunBinPack() {
-	fmt.Println("bin")
-	items := makeRandomList()
-	fmt.Println(items)
-	items = filterLargeItems(items)
-	
-	bins, binsTotal := binPack(items)
-	_=bins
-	_=binsTotal
+type BinPack struct {
+	DesiredSize       int64
+	MaxSize           int64
+	ConcurrentWorkers int
+	ListSize          int
+	Items             []types.S3Object
 }
 
+// constructor
+func NewBinPack(desiredSize int64, maxSize int64, items []types.S3Object) *BinPack {
+	return &BinPack{
+		DesiredSize: desiredSize,
+		MaxSize:     maxSize,
+		Items:       items,
+	}
+}
 
-// helpers
+// run function
+func (b *BinPack) Run() ([][]types.S3Object, []int64) {
+	fmt.Println("bin")
+	fmt.Println(b.Items)
+	filteredItems := b.filterLargeItems() // this copies but apparently good practice
+	bins, binsTotal := b.binPack(filteredItems)
+	return bins, binsTotal
+}
 
-func binPack(items []int64) (bins [][]int64, binTotals []int64) {
-	maxSize := DESIRE_SIZE
-	bins = [][]int64{}
+// main bin pack algorithm
+func (b *BinPack) binPack(items []types.S3Object) (bins [][]types.S3Object, binTotals []int64) {
+	maxSize := b.DesiredSize
+	bins = [][]types.S3Object{}
 	binTotals = []int64{}
-	_=maxSize
-	_=items
+
+	for _, item := range items {
+		inserted := false
+		for i, binSize := range binTotals {
+			if binSize+item.Size <= maxSize {
+				bins[i] = append(bins[i], item) // why is it like this smhhh
+				binTotals[i] += item.Size
+				inserted = true
+				break
+			}
+		}
+		if !inserted { // create new bin if not desired size
+			bins = append(bins, []types.S3Object{item})
+			binTotals = append(binTotals, item.Size)
+		}
+
+	}
+
 	return bins, binTotals
 }
 
-func filterLargeItems(items []int64) []int64 {
-	maxSize := MAX_SIZE 
-	_=maxSize
-	_=items
-	return nil
-}
+func (b *BinPack) filterLargeItems() []types.S3Object {
+	maxSize := int64(float64(b.MaxSize) * 1.2)
 
-func makeRandomList() []int64 {
-	minKB := 30
-	maxKB := 1000
-	listSize := LIST_SIZE 
+	filteredItems := []types.S3Object{}
 
-	lo := minKB * 1024 
-	hi := maxKB * 1024
-
-	randomInts :=  []int64{}
-	for i:=0; i<listSize; i++ {
-		r:= int64(lo + rand.Intn(hi - lo + 1)) // cos go random in range is weird. gotta cast cos return value deinfition
-		randomInts = append(randomInts, r) // this shit just like typescript lol 
+	for _, item := range b.Items {
+		if item.Size <= maxSize {
+			filteredItems = append(filteredItems, item)
+		} else {
+			fmt.Printf("Warning: item of size %d bytes exceeds max allowed size of %d bytes and will be skipped.\n", item.Size, maxSize)
+		}
 	}
 
-	return randomInts
+	// just calculating total size to print
+	totalSize := int64(0)
+	for _, item := range filteredItems {
+		totalSize += item.Size
+	}
+	fmt.Println(fmt.Sprintf("After filtering, %d items with total size %d bytes", len(filteredItems), totalSize))
+	return filteredItems
 }
