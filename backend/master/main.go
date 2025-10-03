@@ -20,11 +20,10 @@ import (
 // - calling augmentor lambda
 // - job status stuff
 
-const DESIRE_SIZE int64 = 128 * 1024 * 1024 // 128mb
-const MAX_SIZE int64 = 256 * 1024 * 1024    // 256mb
+const DESIRED_BIN_SIZE int64 = 128 * 1024 * 1024 			// 128mb
+const ABSOLUTE_MAX_FILE_SIZE int64 = 256 * 1024 * 1024    	// 256mb
 
-const MAX_CONCURRENT_WORKERS int = 10 // concurrency threshold
-// const LIST_SIZE int = 5000
+const MAX_CONCURRENT_WORKERS int = 40 // step functions map state max concurrency
 
 func main() {
 	fmt.Println("master")
