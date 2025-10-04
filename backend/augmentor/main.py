@@ -31,9 +31,9 @@ async def create_s3_client(assume_role_arn: str):
         return s3_client
     
 async def process_augmentation(event):
-    with open ('adj_to_adv.txt', 'r') as f:
+    with open ('adj_to_adv.json', 'r') as f:
         ADJECTIVE_TO_ADVERB = json.load(f)
-    with open ('adv_to_adj.txt', 'r') as f:
+    with open ('adv_to_adj.json', 'r') as f:
         ADVERB_TO_ADJECTIVE = json.load(f)
 
     # convert rules to list of tuples
@@ -138,6 +138,10 @@ if __name__ == "__main__":
         "rules": sample_rules,
         "s3_bucket": "sixsevenlabs",
         "s3_assume_role_arn": "arn:aws:iam::123456789012:role/YourRoleName",
+        "s3_keys": [
+            "sample1.conllu",
+            "sample2.conllu"
+        ]
     }
 
     print(lambda_handler(event, None))

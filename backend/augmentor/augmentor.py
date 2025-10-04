@@ -1,6 +1,5 @@
 import spacy
 import lemminflect  # import is 'unused' but necessary to enable the extension
-import json
 import copy
 import random
 import asyncio
