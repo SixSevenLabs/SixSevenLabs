@@ -1,3 +1,6 @@
+# our temporary files
+terraform/tmp/
+
 # Local .terraform directories
 .terraform/
 

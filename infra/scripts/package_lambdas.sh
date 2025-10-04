@@ -28,7 +28,7 @@ for dir in "$lambdas_dir"*/; do
         # temp build dir for dependencies
         build_dir=$(mktemp -d)
         echo "    Installing dependencies to $build_dir"
-        pip install -r "$dir/requirements.txt" -t "$build_dir" --quiet
+        python -m pip install -r "$dir/requirements.txt" -t "$build_dir" --quiet
         # copy src files
         cp "$dir/"*.py "$build_dir/" 2>/dev/null || true
         cp "$dir/"*.json "$build_dir/" 2>/dev/null || true
