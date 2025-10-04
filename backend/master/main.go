@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/bin"
-	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/types"
+	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/fetch"
 )
 
 // master lambda function: implements bin packing algorithm for splitting up data into chunks
@@ -25,16 +28,23 @@ const MAX_CONCURRENT_WORKERS int = 40 // step functions map state max concurrenc
 func main() {
 	fmt.Println("master")
 
-	var items []types.S3Object // call fetch here
-	
-	binPack := bin.NewBinPack(DESIRED_BIN_SIZE, ABSOLUTE_MAX_FILE_SIZE, items)
-
-	bins, binsTotal, err := binPack.Run()
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		fmt.Println("Error in bin packing:", err)
+		fmt.Println(err)
 		return
 	}
-	
+	s3Client := s3.NewFromConfig(cfg)
+
+	fetchOperation := fetch.NewFetch("sixsevenlabs-data-dev")
+	items, err := fetchOperation.Fetch(context.Background(), s3Client)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	binPack := bin.NewBinPack(DESIRE_SIZE, MAX_SIZE, items)
+	bins, binsTotal := binPack.Run()
+
 	for i, b := range bins {
 		fmt.Printf("Bin %d: %d items, total size %d bytes\n", i, len(b), binsTotal[i])
 	}
@@ -45,4 +55,4 @@ func main() {
 
 	// create events now
 
-} 
+}
