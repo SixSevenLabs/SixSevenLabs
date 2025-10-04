@@ -5,6 +5,8 @@ set -e
 lambdas_dir="backend/"
 output_dir="infra/terraform/tmp/lambda"
 
+output_dir_abs="$(pwd)/$output_dir"
+
 # cleanup old packaged lambdas in output dir
 rm -rf "$output_dir"
 mkdir -p "$output_dir"
@@ -12,7 +14,7 @@ mkdir -p "$output_dir"
 for dir in "$lambdas_dir"*/; do
   if [ -d "$dir" ]; then
     lambda_name=$(basename "$dir")
-    zip_file="$output_dir/${lambda_name}.zip"
+    zip_file="$output_dir_abs/${lambda_name}.zip"
 
     if [ -f "$dir/go.mod" ]; then
         echo "Packaging Go Lambda: $lambda_name"
@@ -28,14 +30,15 @@ for dir in "$lambdas_dir"*/; do
         # temp build dir for dependencies
         build_dir=$(mktemp -d)
         echo "    Installing dependencies to $build_dir"
-        python -m pip install -r "$dir/requirements.txt" -t "$build_dir" --quiet
+        # Use a virtual environment or --ignore-installed to avoid conflicts
+        python3 -m pip install -r "$dir/requirements.txt" -t "$build_dir" --quiet --ignore-installed
         # copy src files
         cp "$dir/"*.py "$build_dir/" 2>/dev/null || true
         cp "$dir/"*.json "$build_dir/" 2>/dev/null || true
         # download spaCy model if needed (for augmentor lambda)
         if grep -q "spacy" "$dir/requirements.txt" && ! grep -q "en_core_web_sm" "$dir/requirements.txt"; then
             echo "        Downloading spaCy model..."
-            python -m spacy download en_core_web_sm -t "$build_dir" --quiet
+            python3 -m spacy download en_core_web_sm -t "$build_dir" --quiet
         fi
         # create zip from build directory
         (cd "$build_dir" && zip -r "$zip_file" . -q)

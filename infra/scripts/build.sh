@@ -14,6 +14,7 @@ fi
 echo "Building project with TF_ACTION=${TF_ACTION}"
 
 echo "[PACKAGE] Packaging Lambdas..."
+chmod +x ./infra/scripts/package_lambdas.sh
 ./infra/scripts/package_lambdas.sh 2>&1 | sed 's/^/    /'
 
 echo "[TERRAFORM] Running Terraform ${TF_ACTION}..."
