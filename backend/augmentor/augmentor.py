@@ -5,6 +5,27 @@ import random
 import asyncio
 from typing import List, Tuple, Optional
 import traceback
+from dataclasses import dataclass
+
+@dataclass
+class ExactRule:
+    source: str
+    target: str
+    aug_pos: str
+    aug_tag: str
+    aug_feat: Optional[str]
+    probability: float
+
+@dataclass
+class DependencyRule:
+    dep_rel: str
+    child_pos_list: List[str]
+    head_pos_list: List[str]
+    old_tag_list: List[str]
+    aug_tag: str
+    child: bool
+    aug_feat: Optional[str]
+    probability: float
 
 # mapping to automatically update POS if the new tag falls under a different POS category
 tag_to_pos = {
@@ -104,7 +125,7 @@ class ConlluAugmentor:
         return f'# sent_id = {sent_id}\n' + '\n'.join(lines) + '\n\n'
     
     def _augment_sentence_exact(self, rule: Tuple, sentence_deep_copy: List[str]) -> List[str]:
-        _, source, target, aug_pos, aug_tag, aug_feat, probability = rule
+        source, target, aug_pos, aug_tag, aug_feat, probability = rule
         for index, word in enumerate(sentence_deep_copy):
             # by default, this is child=True
             if word[1] == source and random.uniform(0, 1) < probability:
@@ -119,7 +140,7 @@ class ConlluAugmentor:
 
     # autoamtically updates POS if the new tag falls under a different POS category
     def _augment_sentence_dependency(self, rule: Tuple, sentence_original: List[str], sentence_deep_copy: List[str]) -> List[str]:
-        _, dep_rel, child_pos_list, head_pos_list, old_tag_list, aug_tag, child, aug_feat, probability = rule
+        dep_rel, child_pos_list, head_pos_list, old_tag_list, aug_tag, child, aug_feat, probability = rule
         for index, word in enumerate(sentence_deep_copy):
             # word matches dependency relation, child pos, and head pos
             if word[7] == dep_rel and word[3] in child_pos_list and sentence_original[int(word[6])-1][3] in head_pos_list and random.uniform(0, 1) < probability: 
@@ -158,15 +179,18 @@ class ConlluAugmentor:
         aug_sentence = copy.deepcopy(sentence)
 
         for rule in shuffled_rules:
-            if rule[0] == "exact":
+            if isinstance(rule, ExactRule):
                 # exact match rule
                 aug_sentence = self._augment_sentence_exact(rule, aug_sentence)
-            elif rule[0] == "dependency":
+            elif isinstance(rule, DependencyRule):
                 # dependency based rule
                 aug_sentence = self._augment_sentence_dependency(rule, sentence, aug_sentence)
             
             if aug_sentence != []:
+                # if aug was successful return it, else try the next (shuffled) rule
                 return aug_sentence
+            
+        return [] # no rule matched
 
     async def download_from_s3(self, s3_client, s3_key: str) -> str:
         """get a file from S3 and return its content"""
