@@ -11,6 +11,11 @@ resource "aws_lambda_function" "augmentor" {
     memory_size         = 128
 }
 
+resource "aws_cloudwatch_log_group" "augmentor_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.augmentor.function_name}"
+    retention_in_days = 14
+}
+
 # user - has permission to assume customer lambda roles
 resource "aws_iam_role" "augmentor_lambda_role" {
     name = "augmentor-lambda-role"
@@ -43,7 +48,7 @@ resource "aws_iam_role_policy" "augmentor_lambda_policy" {
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
                 ]
-                Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/augmentor*"
+                Resource = aws_cloudwatch_log_group.augmentor_lambda_logs.arn
             },
             {
                 Sid    = "AssumeCustomerRoles"

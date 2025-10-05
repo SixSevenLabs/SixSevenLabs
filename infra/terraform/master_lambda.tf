@@ -11,6 +11,11 @@ resource "aws_lambda_function" "master" {
     memory_size         = 128
 }
 
+resource "aws_cloudwatch_log_group" "master_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.master.function_name}"
+    retention_in_days = 7
+}
+
 resource "aws_iam_role" "master_lambda_role" {
     name = "master-lambda-role"
 
@@ -41,7 +46,7 @@ resource "aws_iam_role_policy" "master_lambda_policy" {
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
                 ]
-                Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/master*"
+                Resource = aws_cloudwatch_log_group.master_lambda_logs.arn
             },
             {
                 Sid    = "AssumeCustomerRoles"

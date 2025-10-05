@@ -24,6 +24,11 @@ resource "aws_lambda_function" "augmentor_usage_metrics_consumer" {
     }
 }
 
+resource "aws_cloudwatch_log_group" "augmentor_usage_metrics_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.augmentor_usage_metrics_consumer.function_name}"
+    retention_in_days = 14
+}
+
 # user and policy for lambda to...
 # 1. consume usage metrics from the kinesis stream
 # 2. write logs to cloudwatch
@@ -68,7 +73,7 @@ resource "aws_iam_role_policy" "augmentor_usage_metrics_lambda_policy" {
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
                 ]
-                Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/augmentor-usage-metrics-consumer*"
+                Resource = aws_cloudwatch_log_group.augmentor_usage_metrics_lambda_logs.arn
             }
         ]
     })
@@ -81,10 +86,4 @@ resource "aws_lambda_event_source_mapping" "augmentor_usage_metrics_stream_mappi
     starting_position = "LATEST"
     batch_size        = 100
     maximum_batching_window_in_seconds = 5
-}
-
-# cloudwatch log group for the lambda
-resource "aws_cloudwatch_log_group" "augmentor_usage_metrics_lambda_logs" {
-    name              = "/aws/lambda/${aws_lambda_function.augmentor_usage_metrics_consumer.function_name}"
-    retention_in_days = 14
 }
