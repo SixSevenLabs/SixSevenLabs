@@ -1,20 +1,17 @@
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
 # lambda to consume usage metrics from the kinesis stream
 # note - ensure that the Go binary is called 'bootstrap'; Lambda expects this for custom runtimes
 # note - every Go Lambda just has to call lambda.Start() in main()
 resource "aws_lambda_function" "augmentor_usage_metrics_consumer" {
-    function_name = "augmentor-usage-metrics-consumer"
-    role          = aws_iam_role.augmentor_usage_metrics_lambda_role.arn
-    handler       = "bootstrap"
-    runtime       = "provided.al2023"
+    function_name       = "augmentor-usage-metrics-consumer"
+    role                = aws_iam_role.augmentor_usage_metrics_lambda_role.arn
+    handler             = "bootstrap"
+    runtime             = "provided.al2023"
 
-    filename         = "${path.module}/lambda/augmentor_usage_metrics_consumer.zip"
-    source_code_hash = filebase64sha256("${path.module}/tmp/lambda/augmentor_usage_metrics_consumer.zip")
+    filename            = "${path.module}/tmp/lambda/augmentor_usage_metrics_consumer.zip"
+    source_code_hash    = filebase64sha256("${path.module}/tmp/lambda/augmentor_usage_metrics_consumer.zip")
 
-    timeout     = 30
-    memory_size = 128
+    timeout             = 30
+    memory_size         = 128
 
     environment {
         variables = {
@@ -71,7 +68,7 @@ resource "aws_iam_role_policy" "augmentor_usage_metrics_lambda_policy" {
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
                 ]
-                Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+                Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/augmentor-usage-metrics-consumer*"
             }
         ]
     })

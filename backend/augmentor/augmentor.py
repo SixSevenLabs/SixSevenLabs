@@ -138,7 +138,7 @@ class ConlluAugmentor:
                 return sentence_deep_copy
         return []
 
-    # autoamtically updates POS if the new tag falls under a different POS category
+    # automatically updates POS if the new tag falls under a different POS category
     def _augment_sentence_dependency(self, rule: Tuple, sentence_original: List[str], sentence_deep_copy: List[str]) -> List[str]:
         dep_rel, child_pos_list, head_pos_list, old_tag_list, aug_tag, child, aug_feat, probability = rule
         for index, word in enumerate(sentence_deep_copy):

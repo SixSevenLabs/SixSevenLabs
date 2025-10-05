@@ -30,7 +30,7 @@ for dir in "$lambdas_dir"*/; do
         # temp build dir for dependencies
         build_dir=$(mktemp -d)
         echo "    Installing dependencies to $build_dir"
-        # Use a virtual environment or --ignore-installed to avoid conflicts
+        # --ignore-installed to avoid conflicts
         python3 -m pip install -r "$dir/requirements.txt" -t "$build_dir" --quiet --ignore-installed
         # copy src files
         cp "$dir/"*.py "$build_dir/" 2>/dev/null || true
