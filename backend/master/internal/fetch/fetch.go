@@ -9,19 +9,21 @@ import (
 )
 
 type Fetch struct {
+	s3Client  *s3.Client
 	Bucket     string
 	ListOfKeys []string // optional
 }
 
 // constructor
-func NewFetch(bucket string, listOfKeys ...string) *Fetch {
+func NewFetch(s3Client *s3.Client, bucket string, listOfKeys []string) *Fetch {
 	return &Fetch{
+		s3Client:  s3Client,
 		Bucket:     bucket,
 		ListOfKeys: listOfKeys,
 	}
 }
 
-func (f *Fetch) Fetch(ctx context.Context, s3Client *s3.Client) ([]types.S3Object, error) {
+func (f *Fetch) FetchS3Objects(ctx context.Context) ([]types.S3Object, error) {
 	var items []types.S3Object
 
 	// if specific keys provided, fetch only those
@@ -31,7 +33,7 @@ func (f *Fetch) Fetch(ctx context.Context, s3Client *s3.Client) ([]types.S3Objec
 				Bucket: &f.Bucket,
 				Key:    &key,
 			}
-			output, err := s3Client.HeadObject(ctx, headInput)
+			output, err := f.s3Client.HeadObject(ctx, headInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get object %s: %w", key, err)
 			}
@@ -48,11 +50,11 @@ func (f *Fetch) Fetch(ctx context.Context, s3Client *s3.Client) ([]types.S3Objec
 		Bucket: &f.Bucket,
 	}
 
-	paginator := s3.NewListObjectsV2Paginator(s3Client, input)
+	paginator := s3.NewListObjectsV2Paginator(f.s3Client, input)
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list objects")
+			return nil, fmt.Errorf("failed to list objects: %w", err)
 		}
 
 		for _, obj := range output.Contents {

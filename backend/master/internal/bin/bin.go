@@ -24,21 +24,24 @@ func NewBinPack(desiredSize int64, maxSize int64, items []types.S3Object) *BinPa
 }
 
 // run function
-func (b *BinPack) Run() ([][]types.S3Object, []int64, error) {
+func (b *BinPack) Run() (*types.BinPackResult, error) {
 	fmt.Println("bin")
 	fmt.Println(b.Items)
 	
 	filteredItems, err := b.filterLargeItems()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	bins, binsTotal := b.binPack(filteredItems)
-	return bins, binsTotal, nil
+	return &types.BinPackResult{
+		Bins:     bins,
+		BinsTotal: binsTotal,
+	}, nil
 }
 
 // main bin pack algorithm
-func (b *BinPack) binPack(items []types.S3Object) ([][]types.S3Object,	 []int64) {
+func (b *BinPack) binPack(items []types.S3Object) ([][]types.S3Object, []int64) {
 	var bins [][]types.S3Object
 	var binTotals []int64
 
