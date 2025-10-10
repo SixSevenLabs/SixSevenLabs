@@ -2,6 +2,7 @@ package bin
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/sixsevenlabs/sixsevenlabs/backend/master/internal/types"
 )
@@ -60,7 +61,6 @@ func (b *BinPack) binPack(items []types.S3Object) ([][]types.S3Object, []int64) 
 			bins = append(bins, []types.S3Object{item})
 			binTotals = append(binTotals, item.Size)
 		}
-
 	}
 
 	return bins, binTotals
@@ -73,7 +73,7 @@ func (b *BinPack) filterLargeItems() ([]types.S3Object, error) {
 		if item.Size <= b.AbsoluteMaxFileSize {
 			filteredItems = append(filteredItems, item)
 		} else {
-			fmt.Printf("Warning: item of size %d bytes exceeds max allowed size of %d bytes and will be skipped.\n", item.Size, b.AbsoluteMaxFileSize)
+			log.Printf("Warning: item of size %d bytes exceeds max allowed size of %d bytes and will be skipped.\n", item.Size, b.AbsoluteMaxFileSize)
 		}
 	}
 
@@ -87,7 +87,7 @@ func (b *BinPack) filterLargeItems() ([]types.S3Object, error) {
 		totalSize += item.Size
 	}
 
-	fmt.Println(fmt.Sprintf("After filtering, %d items with total size %d bytes", len(filteredItems), totalSize))
+	log.Printf("After filtering, %d items with total size %d bytes", len(filteredItems), totalSize)
 
 	return filteredItems, nil
 }
