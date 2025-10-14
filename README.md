@@ -1,4 +1,5 @@
 # SixSevenLabs
 Next Generation Data Augmentation Pipeline
 
-<img width="1867" height="2131" alt="image" src="https://github.com/user-attachments/assets/fa6960f4-66e4-4d00-8217-2d7a1ca90ffb" />
+<img width="1572" height="2128" alt="image" src="https://github.com/user-attachments/assets/08b6b7af-0bf3-402a-ba62-5a99d49d98f8" />
+
