@@ -11,12 +11,7 @@ resource "aws_lambda_function" "augmentor" {
     memory_size         = 128
 }
 
-resource "aws_cloudwatch_log_group" "augmentor_lambda_logs" {
-    name              = "/aws/lambda/${aws_lambda_function.augmentor.function_name}"
-    retention_in_days = 14
-}
-
-# user - has permission to assume customer lambda roles
+# user & policy - cloudwatch, assume roles in customer accounts that start with "SixSevenLabs", push to kinesis, secretsmanager read
 resource "aws_iam_role" "augmentor_lambda_role" {
     name = "augmentor-lambda-role"
 
@@ -32,7 +27,6 @@ resource "aws_iam_role" "augmentor_lambda_role" {
     })
 }
 
-# policy - write logs to cloudwatch
 resource "aws_iam_role_policy" "augmentor_lambda_policy" {
     name = "augmentor-lambda-policy"
     role = aws_iam_role.augmentor_lambda_role.id
@@ -56,7 +50,24 @@ resource "aws_iam_role_policy" "augmentor_lambda_policy" {
                 Action = "sts:AssumeRole"
                 # allow assuming any role that starts with "SixSevenLabs" in any account
                 Resource = "arn:aws:iam::*:role/SixSevenLabs*"
+            },
+            {
+                Sid    = "KinesisPutRecords"
+                Effect = "Allow"
+                Action = ["kinesis:PutRecords", "kinesis:PutRecord"]
+                Resource = aws_kinesis_stream.augmentor_stream.arn
+            },
+            {
+                Sid    = "ReadPostgresSecret"
+                Effect = "Allow"
+                Action = ["secretsmanager:GetSecretValue"]
+                Resource = aws_secretsmanager_secret.postgres_credentials.arn
             }
         ]
     })
+}
+
+resource "aws_cloudwatch_log_group" "augmentor_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.augmentor.function_name}"
+    retention_in_days = 7
 }

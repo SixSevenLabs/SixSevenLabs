@@ -27,7 +27,7 @@ resource "aws_iam_user_policy" "frontend_sqs_sender_policy" {
     })
 }
 
-# access (key/secret) for frontend to be able to send to augmentor queue; this should be stored in secrets manager or similar
+# access (key/secret) for frontend to be able to send to augmentor queue; this should be stored in cloudflare's secrets manager
 resource "aws_iam_access_key" "frontend_sqs_sender_key" {
     user = aws_iam_user.frontend_sqs_sender.name
 }
@@ -52,7 +52,7 @@ resource "aws_sqs_queue_policy" "augmentor_queue_acl" {
                 Effect = "Deny"
                 Principal = "*"
                 Action = "sqs:SendMessage"
-                Resource = aws_sqs_queue.app_queue.arn
+                Resource = aws_sqs_queue.augmentor_queue.arn
                 Condition = {
                     StringNotEquals = {
                         "aws:PrincipalArn" = aws_iam_user.frontend_sqs_sender.arn

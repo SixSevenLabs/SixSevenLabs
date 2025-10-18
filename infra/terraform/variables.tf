@@ -1,6 +1,13 @@
+variable "aws_region" {
+    description = "AWS region to deploy resources in"
+    type        = string
+    default     = "us-east-1"
+}
+
 variable "postgres_user" {
     description = "Postgres user"
     type        = string
+    sensitive   = true
 }
 
 variable "postgres_password" {

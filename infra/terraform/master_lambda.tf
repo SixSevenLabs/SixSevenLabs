@@ -11,11 +11,7 @@ resource "aws_lambda_function" "master" {
     memory_size         = 128
 }
 
-resource "aws_cloudwatch_log_group" "master_lambda_logs" {
-    name              = "/aws/lambda/${aws_lambda_function.master.function_name}"
-    retention_in_days = 7
-}
-
+# user & policy - cloudwatch, assume roles in customer accounts that start with "SixSevenLabs", read from secretsmanager
 resource "aws_iam_role" "master_lambda_role" {
     name = "master-lambda-role"
 
@@ -53,7 +49,18 @@ resource "aws_iam_role_policy" "master_lambda_policy" {
                 Effect = "Allow"
                 Action = "sts:AssumeRole"
                 Resource = "arn:aws:iam::*:role/SixSevenLabs*"
+            },
+            {
+                Sid    = "ReadPostgresSecret"
+                Effect = "Allow"
+                Action = ["secretsmanager:GetSecretValue"]
+                Resource = aws_secretsmanager_secret.postgres_credentials.arn
             }
         ]
     })
+}
+
+resource "aws_cloudwatch_log_group" "master_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.master.function_name}"
+    retention_in_days = 7
 }

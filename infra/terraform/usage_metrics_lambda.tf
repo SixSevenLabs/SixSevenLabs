@@ -24,14 +24,7 @@ resource "aws_lambda_function" "augmentor_usage_metrics_consumer" {
     }
 }
 
-resource "aws_cloudwatch_log_group" "augmentor_usage_metrics_lambda_logs" {
-    name              = "/aws/lambda/${aws_lambda_function.augmentor_usage_metrics_consumer.function_name}"
-    retention_in_days = 14
-}
-
-# user and policy for lambda to...
-# 1. consume usage metrics from the kinesis stream
-# 2. write logs to cloudwatch
+# user & policy - cloudwatch, consume usage metrics from the kinesis stream, read from secretsmanager
 resource "aws_iam_role" "augmentor_usage_metrics_lambda_role" {
     name = "augmentor-usage-metrics-lambda-role"
 
@@ -74,9 +67,20 @@ resource "aws_iam_role_policy" "augmentor_usage_metrics_lambda_policy" {
                     "logs:PutLogEvents"
                 ]
                 Resource = aws_cloudwatch_log_group.augmentor_usage_metrics_lambda_logs.arn
+            },
+            {
+                Sid    = "ReadPostgresSecret"
+                Effect = "Allow"
+                Action = ["secretsmanager:GetSecretValue"]
+                Resource = aws_secretsmanager_secret.postgres_credentials.arn
             }
         ]
     })
+}
+
+resource "aws_cloudwatch_log_group" "augmentor_usage_metrics_lambda_logs" {
+    name              = "/aws/lambda/${aws_lambda_function.augmentor_usage_metrics_consumer.function_name}"
+    retention_in_days = 7
 }
 
 # bind kinesis stream to lambda
